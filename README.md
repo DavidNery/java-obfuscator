@@ -13,4 +13,5 @@ For now, it only obfuscate inner method variables. I think about expanding it an
 
 # Credits
 [Next.js](https://nextjs.org) and [React](https://reactjs.org)
+
 [Java Class Tools](https://github.com/leonardosnt/java-class-tools) (thanks LeonardoSNT again)
