@@ -1,27 +1,54 @@
-import { CodeAttributeInfo, ConstantPoolInfo, LocalVariableTableAttributeInfo, Utf8Info } from "java-class-tools";
+import {
+  CodeAttributeInfo,
+  ConstantType,
+  JavaClassFile,
+  LocalVariableTableAttributeInfo,
+  Utf8Info
+} from "java-class-tools";
 import { obfuscatedString, stringToUint8, uint8ToString } from "../utils/stringutils";
 
 export const methodFieldTransform = {
 
-  transform: (constantPool: ConstantPoolInfo[], code: CodeAttributeInfo) => {
-    const { local_variable_table: variableTable } = (code.attributes.find(attr => 
+  transform: (classFile: JavaClassFile, code: CodeAttributeInfo) => {
+    const { constant_pool: constantPool } = classFile;
+
+    const { local_variable_table: variableTable } = code.attributes.find(attr => 
       uint8ToString((constantPool[attr.attribute_name_index] as Utf8Info).bytes) === 'LocalVariableTable'
-    ) as LocalVariableTableAttributeInfo);
+    ) as LocalVariableTableAttributeInfo;
 
-    return variableTable.map(variable => {
-      const varUtf8 = (constantPool[variable.name_index] as Utf8Info);
-      const oldName = uint8ToString(varUtf8.bytes);
+    const alreadyRenamed = [];
+    const transformedVariables = [];
 
-      if(oldName === 'this')
-        return { oldName, newName: 'this' };
+    variableTable.forEach(variable => {
+      if(alreadyRenamed.indexOf(variable.index) === -1) {
+        
+        alreadyRenamed.push(variable.index);
 
-      const newName = obfuscatedString(5, 5);
+        const varUtf8 = (constantPool[variable.name_index] as Utf8Info);
+        const oldName = uint8ToString(varUtf8.bytes);
 
-      varUtf8.bytes = stringToUint8(newName);
-      varUtf8.length = newName.length;
+        if(oldName === 'this')
+          return { oldName, newName: 'this' };
 
-      return { oldName, newName };
-    }); // transformed fields
+        const newName = obfuscatedString(5, 5);
+
+        const constantPoolEntry: Utf8Info = {
+          tag: ConstantType.UTF8,
+          bytes: stringToUint8(newName),
+          length: newName.length
+        };
+
+        constantPool.push(constantPoolEntry);
+        classFile.constant_pool_count += 1;
+
+        variable.name_index = constantPool.length - 1;
+
+        transformedVariables.push({ oldName, newName });
+
+      }
+    });
+
+    return transformedVariables;
   }
 
 }

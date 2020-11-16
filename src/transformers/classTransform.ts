@@ -4,13 +4,11 @@ import { methodTransform } from "./methodTransform";
 
 export const classTransform = {
   transform: (className: string, classFile: JavaClassFile): Class => {
-    const constantPool = classFile.constant_pool;
-
     const methods = classFile.methods.map(method => {
       return methodTransform.transform(
-        constantPool,
+        classFile,
         method,
-        [ 'methodFieldTransform' ]
+        ['methodFieldTransform']
       );
     });
 
